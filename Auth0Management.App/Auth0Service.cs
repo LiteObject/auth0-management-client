@@ -4,10 +4,6 @@ using Auth0.ManagementApi;
 using Auth0.ManagementApi.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Threading;
-using System.Threading.Tasks;
-using System;
-using System.Diagnostics;
 
 namespace Auth0Management.App
 {
@@ -19,6 +15,9 @@ namespace Auth0Management.App
         private readonly int _intervalMs;
         private DateTime _lastRequestTime;
 
+        private string? _cachedToken;
+        private DateTime _tokenExpiration;
+
         public Auth0Service(IOptions<Auth0Options> options, ILogger<Auth0Service> logger)
         {
             _options = options.Value;
@@ -28,28 +27,40 @@ namespace Auth0Management.App
             _lastRequestTime = DateTime.MinValue;
         }
 
-        private async Task RateLimitAsync()
+        private async Task RateLimitAsync(CancellationToken cancellationToken)
         {
-            await _rateLimiter.WaitAsync();
-            var now = DateTime.UtcNow;
-            var elapsed = (now - _lastRequestTime).TotalMilliseconds;
-            if (elapsed < _intervalMs)
+            if (_options.RequestsPerSecond <= 0)
             {
-                await Task.Delay(_intervalMs - (int)elapsed);
+                throw new InvalidOperationException("RequestsPerSecond must be greater than zero.");
             }
-            _lastRequestTime = DateTime.UtcNow;
-            _rateLimiter.Release();
+
+            await _rateLimiter.WaitAsync(cancellationToken);
+            try
+            {
+                var now = DateTime.UtcNow;
+                var elapsed = (now - _lastRequestTime).TotalMilliseconds;
+                if (elapsed < _intervalMs)
+                {
+                    _logger.LogDebug("Rate limiting: delaying for {DelayMs}ms", _intervalMs - elapsed);
+                    await Task.Delay(_intervalMs - (int)elapsed, cancellationToken);
+                }
+                _lastRequestTime = DateTime.UtcNow;
+            }
+            finally
+            {
+                _rateLimiter.Release();
+            }
         }
 
-        private async Task<T> WithRateLimitAsync<T>(Func<Task<T>> func)
+        private async Task<T> WithRateLimitAsync<T>(Func<Task<T>> func, CancellationToken cancellationToken)
         {
-            await RateLimitAsync();
+            await RateLimitAsync(cancellationToken);
             return await func();
         }
 
-        private async Task WithRateLimitAsync(Func<Task> func)
+        private async Task WithRateLimitAsync(Func<Task> func, CancellationToken cancellationToken)
         {
-            await RateLimitAsync();
+            await RateLimitAsync(cancellationToken);
             await func();
         }
 
@@ -57,8 +68,13 @@ namespace Auth0Management.App
         private string ClientId => _options.ClientId;
         private string ClientSecret => _options.ClientSecret;
 
-        private async Task<string> GetManagementApiAccessToken()
+        private async Task<string> GetManagementApiAccessToken(CancellationToken cancellationToken)
         {
+            if (!string.IsNullOrEmpty(_cachedToken) && DateTime.UtcNow < _tokenExpiration)
+            {
+                return _cachedToken;
+            }
+
             return await WithRateLimitAsync(async () =>
             {
                 var client = new AuthenticationApiClient(new Uri($"https://{Domain}"));
@@ -68,14 +84,16 @@ namespace Auth0Management.App
                     ClientSecret = ClientSecret,
                     Audience = $"https://{Domain}/api/v2/"
                 };
-                var tokenResponse = await client.GetTokenAsync(tokenRequest);
-                return tokenResponse.AccessToken;
-            });
+                var tokenResponse = await client.GetTokenAsync(tokenRequest, cancellationToken);
+                _cachedToken = tokenResponse.AccessToken;
+                _tokenExpiration = DateTime.UtcNow.AddSeconds(tokenResponse.ExpiresIn - 60); // Buffer for safety
+                return _cachedToken;
+            }, cancellationToken);
         }
 
-        public async Task<ManagementApiClient> GetManagementClientAsync()
+        public async Task<ManagementApiClient> GetManagementClientAsync(CancellationToken cancellationToken)
         {
-            var token = await GetManagementApiAccessToken();
+            var token = await GetManagementApiAccessToken(cancellationToken);
             return new ManagementApiClient(token, new Uri($"https://{Domain}/api/v2"));
         }
 
@@ -85,7 +103,7 @@ namespace Auth0Management.App
             {
                 try
                 {
-                    var client = await GetManagementClientAsync();
+                    var client = await GetManagementClientAsync(cancellationToken);
                     int page = 0;
                     int pageSize = 10;
                     while (true)
@@ -114,7 +132,7 @@ namespace Auth0Management.App
                 {
                     _logger?.LogError(ex, "Error listing users.");
                 }
-            });
+            }, cancellationToken);
         }
 
         public async Task CreateUserInteractiveAsync(CancellationToken cancellationToken)
@@ -123,7 +141,7 @@ namespace Auth0Management.App
             {
                 try
                 {
-                    var client = await GetManagementClientAsync();
+                    var client = await GetManagementClientAsync(cancellationToken);
                     Console.Write("Email: ");
                     var email = Console.ReadLine();
                     Console.Write("Password: ");
@@ -148,7 +166,7 @@ namespace Auth0Management.App
                 {
                     _logger?.LogError(ex, "Error creating user.");
                 }
-            });
+            }, cancellationToken);
         }
 
         public async Task UpdateUserInteractiveAsync(CancellationToken cancellationToken)
@@ -157,7 +175,7 @@ namespace Auth0Management.App
             {
                 try
                 {
-                    var client = await GetManagementClientAsync();
+                    var client = await GetManagementClientAsync(cancellationToken);
                     Console.Write("User ID to update: ");
                     var userId = Console.ReadLine();
                     Console.Write("New Email (leave blank to skip): ");
@@ -177,7 +195,7 @@ namespace Auth0Management.App
                 {
                     _logger?.LogError(ex, "Error updating user.");
                 }
-            });
+            }, cancellationToken);
         }
     }
 }
