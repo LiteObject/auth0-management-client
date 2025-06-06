@@ -10,6 +10,8 @@ namespace Auth0Management.App
         public string ClientId { get; set; } = null!;
         [Required(ErrorMessage = "Auth0 ClientSecret is required. Please set 'Auth0:ClientSecret' in configuration.")]
         public string ClientSecret { get; set; } = null!;
+        [Required(ErrorMessage = "Auth0 ConnectionName is required. Please set 'Auth0:ConnectionName' in configuration.")]
+        public string ConnectionName { get; set; } = null!;
         public int RequestsPerSecond { get; set; }
         public CircuitBreakerOptions CircuitBreaker { get; set; } = new();
         public RetryOptions Retry { get; set; } = new();
