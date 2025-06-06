@@ -404,3 +404,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Auth0Management.App sensitive config
+Auth0Management.App/appsettings.json
