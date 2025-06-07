@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Auth0Management.App
 {
-    public class Auth0Options
+    internal class Auth0Options
     {
         [Required(ErrorMessage = "Auth0 Domain is required. Please set 'Auth0:Domain' in configuration.")]
         public string Domain { get; set; } = null!;
@@ -16,12 +16,13 @@ namespace Auth0Management.App
         public CircuitBreakerOptions CircuitBreaker { get; set; } = new();
         public RetryOptions Retry { get; set; } = new();
 
-        public class CircuitBreakerOptions
+        internal class CircuitBreakerOptions
         {
             public int Threshold { get; set; }
             public int TimeoutMinutes { get; set; }
         }
-        public class RetryOptions
+
+        internal class RetryOptions
         {
             public int MaxAttempts { get; set; }
             public int BaseDelayMs { get; set; }

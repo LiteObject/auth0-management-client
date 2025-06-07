@@ -4,9 +4,21 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Auth0Management.App;
 
-internal class Program
+internal sealed class Program
 {
     private static ILogger<Program>? _logger;
+
+    // LoggerMessage delegate for improved logging performance
+    private static readonly Action<ILogger, string, Exception> _logAppError =
+        LoggerMessage.Define<string>(
+            LogLevel.Error,
+            new EventId(1, nameof(LogAppError)),
+            "{Message}");
+
+    private static void LogAppError(ILogger logger, Exception ex, string message)
+    {
+        _logAppError(logger, message, ex);
+    }
 
     public static async Task Main(string[] args)
     {
@@ -32,7 +44,7 @@ internal class Program
         _logger = host.Services.GetRequiredService<ILogger<Program>>();
         var auth0Service = host.Services.GetRequiredService<Auth0Service>();
 
-        var cts = new CancellationTokenSource();
+        using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (s, e) =>
         {
             e.Cancel = true;
@@ -41,11 +53,16 @@ internal class Program
 
         try
         {
-            await ShowMenuAsync(auth0Service, cts.Token);
+            await ShowMenuAsync(auth0Service, cts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            _logger?.LogInformation("Operation was canceled by the user.");
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "An error occurred in the application.");
+            LogAppError(_logger!, ex, "An error occurred in the application.");
+            throw; // Rethrow to allow higher-level handlers or crash reporting
         }
     }
 
@@ -63,13 +80,13 @@ internal class Program
             switch (choice)
             {
                 case "1":
-                    await auth0Service.ListUsersAsync(cancellationToken);
+                    await auth0Service.ListUsersAsync(cancellationToken).ConfigureAwait(false);
                     break;
                 case "2":
-                    await auth0Service.CreateUserInteractiveAsync(cancellationToken);
+                    await auth0Service.CreateUserInteractiveAsync(cancellationToken).ConfigureAwait(false);
                     break;
                 case "3":
-                    await auth0Service.UpdateUserInteractiveAsync(cancellationToken);
+                    await auth0Service.UpdateUserInteractiveAsync(cancellationToken).ConfigureAwait(false);
                     break;
                 case "4":
                     return;
