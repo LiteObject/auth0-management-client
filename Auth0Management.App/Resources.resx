@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="SelectActionPrompt" xml:space="preserve">
+    <value>Select an action:</value>
+  </data>
+  <data name="ListUsersOption" xml:space="preserve">
+    <value>1. List users</value>
+  </data>
+  <data name="CreateUserOption" xml:space="preserve">
+    <value>2. Create user</value>
+  </data>
+  <data name="UpdateUserOption" xml:space="preserve">
+    <value>3. Update user</value>
+  </data>
+  <data name="ExitOption" xml:space="preserve">
+    <value>4. Exit</value>
+  </data>
+  <data name="EnterChoicePrompt" xml:space="preserve">
+    <value>Enter choice: </value>
+  </data>
+  <data name="InvalidChoice" xml:space="preserve">
+    <value>Invalid choice.</value>
+  </data>
+</root>

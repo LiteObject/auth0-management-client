@@ -20,6 +20,17 @@ internal sealed class Program
         _logAppError(logger, message, ex);
     }
 
+    private static readonly Action<ILogger, string, Exception?> _logOperationCanceled =
+        LoggerMessage.Define<string>(
+            LogLevel.Information,
+            new EventId(2, nameof(LogOperationCanceled)),
+            "{Message}");
+
+    private static void LogOperationCanceled(ILogger logger, string message)
+    {
+        _logOperationCanceled(logger, message, null);
+    }
+
     public static async Task Main(string[] args)
     {
         using IHost host = Host.CreateDefaultBuilder(args)
@@ -57,7 +68,7 @@ internal sealed class Program
         }
         catch (OperationCanceledException)
         {
-            _logger?.LogInformation("Operation was canceled by the user.");
+            LogOperationCanceled(_logger!, "Operation was canceled by the user.");
         }
         catch (Exception ex)
         {
@@ -70,12 +81,12 @@ internal sealed class Program
     {
         while (!cancellationToken.IsCancellationRequested)
         {
-            Console.WriteLine("\nSelect an action:");
-            Console.WriteLine("1. List users");
-            Console.WriteLine("2. Create user");
-            Console.WriteLine("3. Update user");
-            Console.WriteLine("4. Exit");
-            Console.Write("Enter choice: ");
+            Console.WriteLine(Resources.SelectActionPrompt);
+            Console.WriteLine(Resources.ListUsersOption);
+            Console.WriteLine(Resources.CreateUserOption);
+            Console.WriteLine(Resources.UpdateUserOption);
+            Console.WriteLine(Resources.ExitOption);
+            Console.Write(Resources.EnterChoicePrompt);
             var choice = Console.ReadLine();
             switch (choice)
             {
@@ -91,7 +102,7 @@ internal sealed class Program
                 case "4":
                     return;
                 default:
-                    Console.WriteLine("Invalid choice.");
+                    Console.WriteLine(Resources.InvalidChoice);
                     break;
             }
         }
