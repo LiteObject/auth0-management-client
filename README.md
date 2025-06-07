@@ -22,6 +22,7 @@ This is a .NET console application for managing Auth0 users via the Auth0 Manage
     "Domain": "YOUR_AUTH0_DOMAIN",
     "ClientId": "YOUR_AUTH0_CLIENT_ID",
     "ClientSecret": "YOUR_AUTH0_CLIENT_SECRET",
+    "ConnectionName": "Username-Password-Authentication",
     "RequestsPerSecond": 10,
     "CircuitBreaker": {
       "Threshold": 5,
@@ -54,8 +55,22 @@ cd Auth0Management.App
 
 ## Project Structure
 - `Auth0Options.cs`: Strongly-typed configuration options with validation attributes.
+- `Auth0Service.cs`: Encapsulates all Auth0 API logic, including rate limiting and user management.
 - `Program.cs`: Main entry point, DI setup, and menu logic.
+- `ProgramLog.cs`: Centralized logging delegates and helpers for performance.
+- `Resources.resx`: Localized strings for menu and prompts.
 - `appsettings.json`: Configuration file (copied to output directory on build).
+
+## Logging
+- Uses high-performance `LoggerMessage` delegates for all logging in `ProgramLog.cs`.
+- All log messages are centralized for maintainability and performance.
+
+## Localization
+- All menu and prompt strings are stored in `Resources.resx` and accessed via the generated `Resources` class.
+
+## Static Code Analysis
+- Static code analysis and code style enforcement are enabled on build.
+- All warnings are treated as errors unless otherwise configured in the `.csproj`.
 
 ## Troubleshooting
 - If you see an error about missing `appsettings.json`, ensure the file exists in the project root and is set to copy to output (see `.csproj`).

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace Auth0Management.App
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "Instantiated by DI container")]
     internal sealed class Auth0Service : IDisposable
     {
         private readonly Auth0Options _options;
@@ -41,7 +42,7 @@ namespace Auth0Management.App
                 var elapsed = (now - _lastRequestTime).TotalMilliseconds;
                 if (elapsed < _intervalMs)
                 {
-                    _logger.LogDebug("Rate limiting: delaying for {DelayMs}ms", _intervalMs - elapsed);
+                    ProgramLog.LogRateLimitDelay(_logger, _intervalMs - elapsed);
                     await Task.Delay(_intervalMs - (int)elapsed, cancellationToken).ConfigureAwait(false);
                 }
                 _lastRequestTime = DateTime.UtcNow;
@@ -64,7 +65,7 @@ namespace Auth0Management.App
             await func().ConfigureAwait(false);
         }
 
-        private string Domain => _options.Domain.Replace("https://", "");
+        private string Domain => _options.Domain.Replace("https://", string.Empty, StringComparison.OrdinalIgnoreCase);
         private string ClientId => _options.ClientId;
         private string ClientSecret => _options.ClientSecret;
 
@@ -128,9 +129,14 @@ namespace Auth0Management.App
                         else break;
                     }
                 }
-                catch (Exception ex)
+                catch (OperationCanceledException)
                 {
-                    _logger?.LogError(ex, "Error listing users.");
+                    // Let the caller handle cancellation
+                    throw;
+                }
+                catch (ArgumentException ex)
+                {
+                    ProgramLog.LogListUsersError(_logger, ex);
                 }
             }, cancellationToken).ConfigureAwait(false);
         }
@@ -162,9 +168,13 @@ namespace Auth0Management.App
                     var user = await client.Users.CreateAsync(request, cancellationToken).ConfigureAwait(false);
                     Console.WriteLine($"User created with ID: {user.UserId}");
                 }
-                catch (Exception ex)
+                catch (OperationCanceledException)
                 {
-                    _logger?.LogError(ex, "Error creating user.");
+                    throw;
+                }
+                catch (ArgumentException ex)
+                {
+                    ProgramLog.LogCreateUserError(_logger, ex);
                 }
             }, cancellationToken).ConfigureAwait(false);
         }
@@ -191,9 +201,13 @@ namespace Auth0Management.App
                     var updatedUser = await client.Users.UpdateAsync(userId, request, cancellationToken).ConfigureAwait(false);
                     Console.WriteLine($"User updated: {updatedUser.Email}");
                 }
-                catch (Exception ex)
+                catch (OperationCanceledException)
                 {
-                    _logger?.LogError(ex, "Error updating user.");
+                    throw;
+                }
+                catch (ArgumentException ex)
+                {
+                    ProgramLog.LogUpdateUserError(_logger, ex);
                 }
             }, cancellationToken).ConfigureAwait(false);
         }

@@ -1,8 +1,11 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System.Resources;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Auth0Management.App;
+
+[assembly: NeutralResourcesLanguage("en")]
 
 internal sealed class Program
 {
