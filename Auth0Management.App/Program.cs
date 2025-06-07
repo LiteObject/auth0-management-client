@@ -8,29 +8,6 @@ internal sealed class Program
 {
     private static ILogger<Program>? _logger;
 
-    // LoggerMessage delegate for improved logging performance
-    private static readonly Action<ILogger, string, Exception> _logAppError =
-        LoggerMessage.Define<string>(
-            LogLevel.Error,
-            new EventId(1, nameof(LogAppError)),
-            "{Message}");
-
-    private static void LogAppError(ILogger logger, Exception ex, string message)
-    {
-        _logAppError(logger, message, ex);
-    }
-
-    private static readonly Action<ILogger, string, Exception?> _logOperationCanceled =
-        LoggerMessage.Define<string>(
-            LogLevel.Information,
-            new EventId(2, nameof(LogOperationCanceled)),
-            "{Message}");
-
-    private static void LogOperationCanceled(ILogger logger, string message)
-    {
-        _logOperationCanceled(logger, message, null);
-    }
-
     public static async Task Main(string[] args)
     {
         using IHost host = Host.CreateDefaultBuilder(args)
@@ -68,11 +45,11 @@ internal sealed class Program
         }
         catch (OperationCanceledException)
         {
-            LogOperationCanceled(_logger!, "Operation was canceled by the user.");
+            ProgramLog.LogOperationCanceled(_logger!, "Operation was canceled by the user.");
         }
         catch (Exception ex)
         {
-            LogAppError(_logger!, ex, "An error occurred in the application.");
+            ProgramLog.LogAppError(_logger!, ex, "An error occurred in the application.");
             throw; // Rethrow to allow higher-level handlers or crash reporting
         }
     }
