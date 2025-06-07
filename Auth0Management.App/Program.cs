@@ -1,4 +1,5 @@
 ﻿using System.Resources;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -6,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Auth0Management.App;
 
 [assembly: NeutralResourcesLanguage("en")]
+[assembly: InternalsVisibleTo("Auth0Management.App.Tests")]
 
 internal sealed class Program
 {
